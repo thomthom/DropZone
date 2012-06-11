@@ -1,0 +1,89 @@
+#zone {
+  background: #444;
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  top: 10px;
+  bottom: 10px;
+  border-radius: 10px;
+  
+  color: #666;
+  font-size: 2em;
+  text-align: center;
+  line-height: 350px;
+}
+#zone.drag {
+  color: #fff;
+  background: #484;
+  box-shadow: 0 0 5px rgba(0, 0, 255, 1);
+  -webkit-box-shadow: 0 0 5px rgba(0, 0, 255, 1);
+  border: 2px solid #fff;
+}
+.invalid #zone.drag {
+  background: #844;
+}
+.invalid * {
+  /*cursor: no-drop;*/ /* Crashes Safari Windows */
+  cursor: not-allowed !important; /* DEBUG */
+}
+
+#dragcatcher {
+  background: #884;
+  background: #000;
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: none;
+  opacity: 0.0;
+  z-index: 100;
+}
+
+.message {
+  position: absolute;
+  left: 50px;
+  right: 50px;
+  top: 250px;
+  
+  background: #77c;
+  border: 1px solid #55c;
+  
+  padding: 5px;
+}
+.error {
+  background: #c77;
+  border: 1px solid #c55;
+}
+.message p {
+  margin: 0.5em 0;
+}
+.emo {
+  float: left;
+  font-size: 8em;
+  vertical-align: -0.2em;
+  line-height: 0.6em;
+  margin: 0 0.15em 0 0.1em;
+}
+
+#list {
+  position: absolute;
+  left: 50px;
+  right: 50px;
+  top: 50px;
+  
+  /*
+  border: 1px solid #333;
+  padding: 5px;
+  */
+}
+#list ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+#list li {
+  background: #333;
+  margin: 3px;
+  padding: 5px;
+}
