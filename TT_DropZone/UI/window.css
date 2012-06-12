@@ -22,10 +22,6 @@
 .invalid #zone.drag {
   background: #844;
 }
-.invalid * {
-  /*cursor: no-drop;*/ /* Crashes Safari Windows */
-  cursor: not-allowed !important; /* DEBUG */
-}
 
 #dragcatcher {
   background: #884;

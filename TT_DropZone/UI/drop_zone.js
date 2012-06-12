@@ -20,18 +20,26 @@ var DropPadWindow = function() {
         $body.append( $('<div class="message">File API Supported :)</div>') );
       }
       else {
+        // http://caniuse.com/fileapi
         $html.addClass( 'invalid' );
 
         $html.on( 'drop',      handleInvalidDrop );
         $html.on( 'dragover',  handleInvalidDrag );
         $html.on( 'dragenter', handleInvalidDragEnter );
         //$html.on( 'dragleave', handleDragLeave );
-
+        
+        // Safari returns 'Netscape' as navigator.appName,
+        // IE returns Microsoft Internet Explorer
+        var browser = navigator.appName;
+        if ( navigator.userAgent.indexOf('AppleWebKit') > -1) {
+          browser = 'Safari';
+        }
+        
         var $message = $('<div class="message error"/>');
         $message.html(
           '<span class="emo">&#x2639;</span>' +
           '<p><b>File API not supported!</b></p>' + 
-          '<p>Please upgrade ' + navigator.appName + '.</p>'
+          '<p>Please upgrade ' + browser + '.</p>'
         );
         $body.append( $message );
       }
