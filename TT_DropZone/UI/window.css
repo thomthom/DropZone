@@ -1,5 +1,14 @@
+html {
+  -moz-user-select: -moz-none;
+  -khtml-user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
 #zone {
   background: #444;
+  border: 2px solid #444;
   position: absolute;
   left: 10px;
   right: 10px;
@@ -15,9 +24,9 @@
 #zone.drag {
   color: #fff;
   background: #484;
+  border: 2px solid #fff;
   box-shadow: 0 0 5px rgba(0, 0, 255, 1);
   -webkit-box-shadow: 0 0 5px rgba(0, 0, 255, 1);
-  border: 2px solid #fff;
 }
 .invalid #zone.drag {
   background: #844;

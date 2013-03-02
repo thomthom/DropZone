@@ -49,6 +49,7 @@ module TT::Plugins::DropZone
   ### VARIABLES ### ------------------------------------------------------------
   
   @wnd_attributes = nil
+  @installed_stack = []
   
   
   ### MENU & TOOLBARS ### ------------------------------------------------------
@@ -117,19 +118,94 @@ module TT::Plugins::DropZone
 
     window.add_action_callback( 'Install_Files' ) { | dialog, params |
       puts '[Callback::Install_Files]'
-      self.install_file( params )
+      filename = self.install_file( params )
+      @installed_stack << filename if filename
+      #self.check_virtualstore( @installed_stack )
+    }
+
+    window.add_action_callback( 'Install_Complete' ) { | dialog, params |
+      puts '[Callback::Install_Ended]'
+      puts "> Checking installed stack: #{@installed_stack.length}"
+      self.check_virtualstore( @installed_stack )
+      @installed_stack.clear
     }
     
     window
   end
+
+
+  def self.check_virtualstore( filenames )
+    puts "self.check_virtualstore"
+    p filenames
+    return false unless TT::System.is_windows?
+    # Locate destination.
+    destination = Sketchup.find_support_file( 'Plugins' )
+    destination = File.expand_path( destination )
+    # Locate VirtualStore path of 'destination'
+    virtualstore = File.join( ENV['LOCALAPPDATA'], 'VirtualStore' )
+    virtualpath = destination.split(':')[1]
+    # Get list of all files trapped in VirtualStore
+    in_store = filenames.select { |filename|
+      path = File.dirname( filename )
+      path = File.expand_path( path )
+      path == destination && self.is_virtual?( filename )
+    }
+    # Check if files are stuck in VirtualStore, notify user.
+    if in_store.empty?
+      return false
+    else
+      message = ''
+      message << "You do not have required access to the Plugins folder.\n"
+      message << "Some of the files ended up in VirtualStore.\n"
+      message << "Would you like #{PLUGIN_NAME} to copy the files to the correct location?.\n"
+      message << "If you answer yes you will get a UAC prompt asking for your confirmation."
+      result = UI.messagebox( message, MB_YESNO ) # YES (6) and NO (7)
+      if result == 7
+        # (!)
+      end
+    end
+    # Compile BAT script to copy files to correct folder.
+    bat = File.join( TT::System.temp_path, 'dropzone_copy.bat' )
+    File.open( bat, 'w' ) { |file|
+      for filename in filenames
+        basename = File.basename( filename )
+        virtualfile = File.join( virtualstore, virtualpath, basename )
+        # Paths must have backslashes.
+        basename.tr!('/','\\')
+        virtualfile.tr!('/','\\')
+        # Files must be quotes with double quotes - not single.
+        file.puts %|move "#{virtualfile}" "#{filename}"|
+      end
+    }
+    # Run script with elevated rights.
+    puts bat
+    require 'win32ole'
+    shell = WIN32OLE.new( 'Shell.Application' )
+    shell.ShellExecute( bat, nil, nil, 'runas' )
+    # http://www.devguru.com/technologies/vbscript/quickref/filesystemobject_movefile.html
+  end
+
 
   # @return [String]
   # @since 1.0.0
   def self.install_file( file )
     puts "Installing File: #{file}"
 
-    destination = Sketchup.find_support_file( 'Plugins' )
-    destination = 'C:/Users/Thomas/Desktop/DropZone' # (!) DEBUG
+    # Determine if the file can be handled and where it should be extracted.
+    filetype = file.split('.').last
+    case filetype.downcase
+    when 'rb', 'rbs'
+      destination = Sketchup.find_support_file( 'Plugins' )
+    when 'zip', 'rbz'
+      destination = TT::System.temp_path
+    else
+      # (!) Notify webdialog
+      UI.beep
+      puts "The file type #{filetype} is not handled by DropZone."
+      return false
+    end
+    #destination = Sketchup.find_support_file( 'Plugins' )
+    #destination = 'C:/Users/Thomas/Desktop/DropZone' # (!) DEBUG
     filename = File.join( destination, file )
 
     # (!) Update WebDialog
@@ -152,15 +228,69 @@ module TT::Plugins::DropZone
     encoding, data64 = encoded_data.split(',')
     data = TT::Binary.decode64( data64 )
 
-    # Install files.
-    # * rbz,zip Write to temp, install_rbz_archive
-    # * rb, rbs Write directly to plugin folder
-    File.open( filename, 'wb' ) { |file|
-      data_length = file.write( data )
+    # Extract files.
+    File.open( filename, 'wb' ) { |f|
+      data_length = f.write( data )
       puts "  > Wrote #{data_length} bytes"
     }
 
+    puts 'Sending WebDialog Message...'
+    p @wnd_drop_pad.call_script( 'DropPadWindow.debug', "#{file} Installed..." )
+    puts '> Sent!'
+
+    # Install files.
+    case filetype.downcase
+    when 'rb', 'rbs'
+      # (!) Error catch
+      # Sketchup::require currently doesn't throw an exception or error. Instead
+      # it returns `false` on failure (already loaded, or load error) or `0`
+      # upon success.
+      #
+      # (!) Should not try to load file until it's been verified to not be in 
+      #     VirtualStore. Maybe just skip here if detected to be in VirtualStore
+      #     and load it after it's been moved.
+      unless Sketchup::load( filename )
+      #unless Sketchup::require( filename )
+        # (!) Notify webdialog
+        puts "Notice: '#{file}' could not be loaded."
+        @installed_stack << filename # Debug
+        return false
+      end
+    when 'zip', 'rbz'
+      begin
+        Sketchup.install_from_archive( filename )
+      rescue Interrupt => error
+        # (!) Notify webdialog
+        puts "Notice: User said 'no': " + error
+        return false
+      rescue Exception => error
+        # (!) Notify webdialog
+        puts "Error during unzip: " + error
+        return false
+      end
+    end
+
     # (!) Update WebDialog with results
+    #true
+    return filename
+  end
+
+
+  # @return [String]
+  # @since 1.0.0
+  def self.is_virtual?( file )
+    # (!) Windows check.
+    filename = File.basename( file )
+    filepath = File.dirname( file )
+    # Verify file exists.
+    unless File.exist?( file )
+      raise IOError, "The file '#{file}' does not exist."
+    end
+    # See if it can be found in virtual store.
+    virtualstore = File.join( ENV['LOCALAPPDATA'], 'VirtualStore' )
+    path = filepath.split(':')[1]
+    virtualfile = File.join( virtualstore, path, filename )
+    File.exist?( virtualfile )
   end
 
   

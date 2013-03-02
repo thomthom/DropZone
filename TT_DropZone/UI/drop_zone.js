@@ -10,17 +10,17 @@ var DropPadWindow = function() {
       $body.append( $zone );
       $body.append( $('<div id="list"></div>') );
       
-      // Check the File API support
-      if ( window.File && window.FileReader && window.FileList && window.Blob ) {
+      // Check for File API support.
+      //
+      // http://caniuse.com/fileapi
+      // http://www.thecssninja.com/javascript/gmail-upload
+      if ( file_api_support() ) {
         $html.on( 'drop',      handleFileDrop );
         $html.on( 'dragover',  handleDragOver );
         $html.on( 'dragenter', handleDragEnter );
         //$html.on( 'dragleave', handleDragLeave );
-
-        $body.append( $('<div class="message">File API Supported :)</div>') );
       }
       else {
-        // http://caniuse.com/fileapi
         $html.addClass( 'invalid' );
 
         $html.on( 'drop',      handleInvalidDrop );
@@ -29,7 +29,7 @@ var DropPadWindow = function() {
         //$html.on( 'dragleave', handleDragLeave );
         
         // Safari returns 'Netscape' as navigator.appName,
-        // IE returns Microsoft Internet Explorer
+        // IE returns 'Microsoft Internet Explorer'.
         var browser = navigator.appName;
         if ( navigator.userAgent.indexOf('AppleWebKit') > -1) {
           browser = 'Safari';
@@ -48,6 +48,11 @@ var DropPadWindow = function() {
       var $dragCatcher = $('<div id="dragcatcher"/>');
       $dragCatcher.on( 'dragleave', handleDragLeave );
       $('body').append( $dragCatcher );
+    },
+
+    debug : function( text ) {
+      $('#zone').text( text );
+      return 'DEBUG OK'
     }
     
     
@@ -87,24 +92,39 @@ var DropPadWindow = function() {
           // Hack, put data in Ruby Bridge element because data is too large.
           $('#RUBY_bridge').val( data );
           window.location = 'skp:Install_Files@' + file.name;
+          // Notify about last file.
+          if ( i == files.length ) {
+            window.location = 'skp:Install_Complete';
+          }
         };
       })(f);
       reader.readAsDataURL(f);
     }
+    //window.location = 'skp:Install_Complete';
   }
 
   function handleDragOver( event ) {
     event.stopPropagation();
     event.preventDefault();
-    event.originalEvent.dataTransfer.dropEffect = 'copy';
+    if ( is_files_dragged( event ) ) {
+      event.originalEvent.dataTransfer.dropEffect = 'copy';
+    }
+    else {
+      event.originalEvent.dataTransfer.dropEffect = 'none';
+    }
   }
 
   function handleDragEnter( event ) {
     event.stopPropagation();
     event.preventDefault();
-    event.originalEvent.dataTransfer.dropEffect = 'copy';
-    $('#zone').addClass('drag');
-    $('#dragcatcher').show();
+    if ( is_files_dragged( event ) ) {
+      event.originalEvent.dataTransfer.dropEffect = 'copy';
+      $('#zone').addClass('drag');
+      $('#dragcatcher').show();
+    }
+    else {
+      event.originalEvent.dataTransfer.dropEffect = 'none';
+    }
   }
 
   function handleDragLeave( event ) {
@@ -135,6 +155,21 @@ var DropPadWindow = function() {
     $('#zone').addClass('drag');
     $('#dragcatcher').show();
   }
+
+  function is_files_dragged( event ) {
+    for (n in event.originalEvent.dataTransfer.types) {
+      if (event.originalEvent.dataTransfer.types[n] === "Files") return true;
+    }
+    return false;
+  }
+
+  function file_api_support() {
+    if ( window.File && window.FileReader && window.FileList && window.Blob ) {
+      return true;
+    }
+    return false;
+  }
+
   
 }(); // DropPadWindow
 
