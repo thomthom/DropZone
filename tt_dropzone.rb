@@ -58,9 +58,16 @@ module TT::Plugins::DropZone
   ### MENU & TOOLBARS ### ------------------------------------------------------
   
   unless file_loaded?( __FILE__ )
+    # Commands
+    cmd = UI::Command.new( 'Drop Zone' ) { self.toggle_dropzone_window }
+    cmd.status_bar_text = 'Show or hide the DropZone window for installing plugins.'
+    cmd.tooltip = 'Drop Zone'
+    cmd.set_validation_proc { self.dropzone_window_validation_proc }
+    cmd_toggle_dropzone_window = cmd
+
     # Menus
     m = TT.menu( 'Window' )
-    m.add_item( 'Drop Zone' ) { self.toggle_dropzone_window }
+    m.add_item( cmd_toggle_dropzone_window )
   end 
   
   
@@ -80,18 +87,31 @@ module TT::Plugins::DropZone
   
   ### MAIN SCRIPT ### ----------------------------------------------------------
   
-  # @return [String]
+  # @return [Boolean]
   # @since 1.0.0
   def self.toggle_dropzone_window
-    # (!) Implement toggle.
     @wnd_drop_pad ||= self.create_dropzone_window
     if @wnd_drop_pad.visible?
-      @wnd_drop_pad.bring_to_front
+      @wnd_drop_pad.close
+      false
     else
       @wnd_drop_pad.show_window
+      true
+    end
+  end
+
+
+  # @return [Integer]
+  # @since 1.0.0
+  def self.dropzone_window_validation_proc
+    if @wnd_drop_pad && @wnd_drop_pad.visible?
+      MF_CHECKED
+    else
+      MF_UNCHECKED
     end
   end
   
+
   # @return [String]
   # @since 1.0.0
   def self.create_dropzone_window
