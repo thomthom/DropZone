@@ -16,7 +16,7 @@ rescue LoadError => e
     message << "\n"
     message << "Would you like to open a webpage where you can download TT_Lib²?"
     result = UI.messagebox( message, MB_YESNO )
-    if result == 6 # YES
+    if result == IDYES
       UI.openURL( 'http://www.thomthom.net/software/tt_lib2/' )
     end
   }
@@ -179,9 +179,19 @@ module TT::Plugins::DropZone
     }
     # Run script with elevated rights.
     puts bat
-    require 'win32ole'
-    shell = WIN32OLE.new( 'Shell.Application' )
-    shell.ShellExecute( bat, nil, nil, 'runas' )
+    begin
+      require 'win32ole'
+      shell = WIN32OLE.new( 'Shell.Application' )
+      shell.ShellExecute( bat, nil, nil, 'runas' )
+    rescue LoadError => e
+      message = "win32ole.so was not found. #{PLUGIN_NAME} could not move the files.\n"
+      message << "\n"
+      message << "Would you like to open a webpage where you can download win32ole.so?"
+      result = UI.messagebox( message, MB_YESNO )
+      if result == IDYES
+        UI.openURL( 'http://sketchucation.com/forums/viewtopic.php?t=42732#p380121' )
+      end
+    end
     # http://www.devguru.com/technologies/vbscript/quickref/filesystemobject_movefile.html
   end
 
