@@ -45,13 +45,13 @@ module TT::Plugins::DropZone
   
   # Resource paths
   PATH_ROOT   = File.dirname( __FILE__ ).freeze
-  PATH        = File.join( PATH_ROOT, 'TT_DropZone' ).freeze
+  PATH        = File.join( PATH_ROOT, PLUGIN_ID ).freeze
   PATH_UI     = File.join( PATH, 'UI' ).freeze
   
   
   ### VARIABLES ### ------------------------------------------------------------
   
-  @wnd_attributes = nil
+  @wnd_drop_pad = nil
   @installed_stack = []
   
   
@@ -61,14 +61,6 @@ module TT::Plugins::DropZone
     # Menus
     m = TT.menu( 'Window' )
     m.add_item( 'Drop Zone' ) { self.toggle_dropzone_window }
-    
-    # Toolbar
-    #toolbar = UI::Toolbar.new( PLUGIN_NAME )
-    #toolbar.add_item( ... )
-    #if toolbar.get_last_state == TB_VISIBLE
-    #  toolbar.restore
-    #  UI.start_timer( 0.1, false ) { toolbar.restore } # SU bug 2902434
-    #end
   end 
   
   
@@ -81,7 +73,7 @@ module TT::Plugins::DropZone
       :version => PLUGIN_VERSION.to_s,
       :date => RELEASE_DATE,   
       :description => 'Drag and Drop Ruby packages to install.',
-      :link_info => 'http://forums.sketchucation.com/viewtopic.php?f=0&t=0'
+      :link_info => 'http://sketchucation.com/forums/viewtopic.php?t=0'
     }
   end
   
@@ -123,7 +115,6 @@ module TT::Plugins::DropZone
       puts '[Callback::Install_Files]'
       filename = self.install_file( params )
       @installed_stack << filename if filename
-      #self.check_virtualstore( @installed_stack )
     }
 
     window.add_action_callback( 'Install_Complete' ) { | dialog, params |
@@ -137,6 +128,10 @@ module TT::Plugins::DropZone
   end
 
 
+  # @parap [Array<String>] filenames
+  #
+  # @return [Boolean]
+  # @since 1.0.0
   def self.check_virtualstore( filenames )
     puts "self.check_virtualstore"
     p filenames
@@ -163,8 +158,12 @@ module TT::Plugins::DropZone
       message << "Would you like #{PLUGIN_NAME} to copy the files to the correct location?.\n"
       message << "If you answer yes you will get a UAC prompt asking for your confirmation."
       result = UI.messagebox( message, MB_YESNO ) # YES (6) and NO (7)
-      if result == 7
-        # (!)
+      if result == IDNO
+        message = ''
+        message << "There are still files in the VirtualStore."
+        message << "This might cause some plugins not to function properly."
+        UI.messagebox( message )
+        return false
       end
     end
     # Compile BAT script to copy files to correct folder.
@@ -183,6 +182,7 @@ module TT::Plugins::DropZone
     # Run script with elevated rights.
     puts bat
     begin
+      # http://www.devguru.com/technologies/vbscript/quickref/filesystemobject_movefile.html
       require 'win32ole'
       shell = WIN32OLE.new( 'Shell.Application' )
       shell.ShellExecute( bat, nil, nil, 'runas' )
@@ -194,12 +194,15 @@ module TT::Plugins::DropZone
       if result == IDYES
         UI.openURL( 'http://sketchucation.com/forums/viewtopic.php?t=42732#p380121' )
       end
+      return false
     end
-    # http://www.devguru.com/technologies/vbscript/quickref/filesystemobject_movefile.html
+    true
   end
 
 
-  # @return [String]
+  # @param [String] file
+  #
+  # @return [String,False]
   # @since 1.0.0
   def self.install_file( file )
     puts "Installing File: #{file}"
@@ -212,13 +215,11 @@ module TT::Plugins::DropZone
     when 'zip', 'rbz'
       destination = TT::System.temp_path
     else
-      # (!) Notify webdialog
+      # (!) Notify webdialog of unsupported filetype.
       UI.beep
       puts "The file type #{filetype} is not handled by DropZone."
       return false
     end
-    #destination = Sketchup.find_support_file( 'Plugins' )
-    #destination = 'C:/Users/Thomas/Desktop/DropZone' # (!) DEBUG
     filename = File.join( destination, file )
 
     # (!) Update WebDialog
@@ -284,15 +285,16 @@ module TT::Plugins::DropZone
     end
 
     # (!) Update WebDialog with results
-    #true
     return filename
   end
 
 
-  # @return [String]
+  # @param [String] file
+  #
+  # @return [boolean]
   # @since 1.0.0
   def self.is_virtual?( file )
-    # (!) Windows check.
+    return false unless TT::System.is_windows?
     filename = File.basename( file )
     filepath = File.dirname( file )
     # Verify file exists.
@@ -325,10 +327,14 @@ module TT::Plugins::DropZone
     # Core file (this)
     load __FILE__
     # Supporting files
-    x = Dir.glob( File.join(PATH, '*.{rb,rbs}') ).each { |file|
-      load file
-    }
-    x.length
+    if defined?( PATH ) && File.exist?( PATH )
+      x = Dir.glob( File.join(PATH, '*.{rb,rbs}') ).each { |file|
+        load file
+      }
+      x.length + 1
+    else
+      1
+    end
   ensure
     $VERBOSE = original_verbose
   end
