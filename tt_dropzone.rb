@@ -139,7 +139,7 @@ module TT::Plugins::DropZone
 
     window.add_action_callback( 'Install_Complete' ) { | dialog, params |
       puts '[Callback::Install_Ended]'
-      puts "> Params: #{@params.inspect}"
+      puts "> Params: #{params.inspect}"
       puts "> Checking installed stack: #{@installed_stack.length}"
       self.check_virtualstore( @installed_stack )
       puts "> Loading installed stack..."
