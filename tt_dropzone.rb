@@ -127,7 +127,7 @@ module TT::Plugins::DropZone
       :top        => 100
     }
     window = TT::GUI::Window.new( options )
-    window.theme = TT::GUI::Window::THEME_GRAPHITE # (!) Make theme use IE-Edge
+    window.theme = TT::GUI::Window::THEME_GRAPHITE
     window.add_script( File.join( 'file:///', PATH_UI, 'drop_zone.js' ) )
     window.add_style(  File.join( 'file:///', PATH_UI, 'window.css' ) )
 
@@ -139,9 +139,14 @@ module TT::Plugins::DropZone
 
     window.add_action_callback( 'Install_Complete' ) { | dialog, params |
       puts '[Callback::Install_Ended]'
+      puts "> Params: #{@params.inspect}"
       puts "> Checking installed stack: #{@installed_stack.length}"
       self.check_virtualstore( @installed_stack )
+      puts "> Loading installed stack..."
+      self.load_rb_and_rbs_files( @installed_stack )
+      puts "> Clearing installed stack..."
       @installed_stack.clear
+      puts "> Cleared!"
     }
     
     window
@@ -159,10 +164,10 @@ module TT::Plugins::DropZone
     # Locate destination.
     destination = Sketchup.find_support_file( 'Plugins' )
     destination = File.expand_path( destination )
-    # Locate VirtualStore path of 'destination'
+    # Locate VirtualStore path of 'destination'.
     virtualstore = File.join( ENV['LOCALAPPDATA'], 'VirtualStore' )
     virtualpath = destination.split(':')[1]
-    # Get list of all files trapped in VirtualStore
+    # Get list of all files trapped in VirtualStore.
     in_store = filenames.select { |filename|
       path = File.dirname( filename )
       path = File.expand_path( path )
@@ -187,6 +192,7 @@ module TT::Plugins::DropZone
       end
     end
     # Compile BAT script to copy files to correct folder.
+    moved_files = []
     bat = File.join( TT::System.temp_path, 'dropzone_copy.bat' )
     File.open( bat, 'w' ) { |file|
       for filename in filenames
@@ -197,6 +203,7 @@ module TT::Plugins::DropZone
         virtualfile.tr!('/','\\')
         # Files must be quotes with double quotes - not single.
         file.puts %|move "#{virtualfile}" "#{filename}"|
+        moved_files << filename
       end
     }
     # Run script with elevated rights.
@@ -215,6 +222,32 @@ module TT::Plugins::DropZone
         UI.openURL( 'http://sketchucation.com/forums/viewtopic.php?t=42732#p380121' )
       end
       return false
+    end
+    true
+  end
+
+  # @param [String] file
+  #
+  # @return [Boolean]
+  # @since 1.0.0
+  def self.load_rb_and_rbs_files( filenames )
+    for filename in filenames
+      unless File.exist?( filename )
+        # (!) Notify webdialog
+        puts "Notice: '#{filename}' could not be found."
+        next
+      end
+      filetype = filename.split('.').last
+      case filetype.downcase
+      when 'rb', 'rbs'
+        # Sketchup::require currently doesn't throw an exception or error.
+        # Instead it returns `false` on failure (already loaded, or load error)
+        # or `0` upon success.
+        if Sketchup::load( filename ) != 0
+          # (!) Notify webdialog
+          puts "Notice: '#{filename}' could not be loaded."
+        end
+      end
     end
     true
   end
@@ -275,20 +308,14 @@ module TT::Plugins::DropZone
     # Install files.
     case filetype.downcase
     when 'rb', 'rbs'
-      # (!) Error catch
-      # Sketchup::require currently doesn't throw an exception or error. Instead
-      # it returns `false` on failure (already loaded, or load error) or `0`
-      # upon success.
-      #
-      # (!) Should not try to load file until it's been verified to not be in 
-      #     VirtualStore. Maybe just skip here if detected to be in VirtualStore
-      #     and load it after it's been moved.
-      unless Sketchup::load( filename )
-      #unless Sketchup::require( filename )
-        # (!) Notify webdialog
-        puts "Notice: '#{file}' could not be loaded."
-        @installed_stack << filename # Debug
+      # Should not try to load file until it's been verified to not be in 
+      # VirtualStore. Files are loaded after all files has been copied and
+      # the VirtualStore has been checked and processed.
+      if self.is_virtual?( filename )
+        @installed_stack << filename
         return false
+      else
+        true
       end
     when 'zip', 'rbz'
       begin

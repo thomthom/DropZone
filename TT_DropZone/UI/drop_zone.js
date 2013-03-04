@@ -1,4 +1,7 @@
 var DropPadWindow = function() {
+
+  var file_index = 0;
+
   return {
   
   
@@ -71,8 +74,8 @@ var DropPadWindow = function() {
     for ( var i = 0, f; f = files[i]; i++ ) {
       name = escape(f.name);
       type = f.type || 'n/a';
-      size = f.size;
-      date = f.lastModifiedDate;
+      size = f.size || 'n/a';
+      date = f.lastModifiedDate || 'n/a';
       date = ( date ) ? date.toLocaleDateString() : 'n/a';
       $ul.append(
         $('<li><strong>' + name + '</strong><br/>' +
@@ -84,6 +87,7 @@ var DropPadWindow = function() {
     $('#dragcatcher').hide();
 
     // Process Files
+    file_index = 0;
     for ( var i = 0, f; f = files[i]; i++ ) {
       var reader = new FileReader();
       reader.onload = (function(file) {
@@ -93,14 +97,14 @@ var DropPadWindow = function() {
           $('#RUBY_bridge').val( data );
           window.location = 'skp:Install_Files@' + file.name;
           // Notify about last file.
-          if ( i == files.length ) {
+          file_index++;
+          if ( file_index == files.length ) {
             window.location = 'skp:Install_Complete';
           }
         };
       })(f);
       reader.readAsDataURL(f);
     }
-    //window.location = 'skp:Install_Complete';
   }
 
   function handleDragOver( event ) {
