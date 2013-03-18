@@ -41,7 +41,7 @@ module TT::Plugins::DropZone
   PLUGIN_VERSION  = TT::Version.new(1,0,0).freeze
   
   # Version information
-  RELEASE_DATE    = '31 May 12'.freeze
+  RELEASE_DATE    = '18 Mar 13'.freeze
   
   # Resource paths
   PATH_ROOT   = File.dirname( __FILE__ ).freeze
@@ -80,7 +80,7 @@ module TT::Plugins::DropZone
       :version => PLUGIN_VERSION.to_s,
       :date => RELEASE_DATE,   
       :description => 'Drag and Drop Ruby packages to install.',
-      :link_info => 'http://sketchucation.com/forums/viewtopic.php?t=0'
+      :link_info => 'http://sketchucation.com/forums/viewtopic.php?t=51330'
     }
   end
   
