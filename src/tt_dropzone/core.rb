@@ -31,32 +31,16 @@ end
 if defined?( TT::Lib ) && TT::Lib.compatible?( '2.7.0', 'Drop Zone' )
 
 module TT::Plugins::DropZone
-  
-  
-  ### CONSTANTS ### ------------------------------------------------------------
-  
-  # Plugin information
-  PLUGIN_ID       = 'TT_DropZone'.freeze
-  PLUGIN_NAME     = 'Drop Zone'.freeze
-  PLUGIN_VERSION  = TT::Version.new(1,0,0).freeze
-  
-  # Version information
-  RELEASE_DATE    = '18 Mar 13'.freeze
-  
-  # Resource paths
-  PATH_ROOT   = File.dirname( __FILE__ ).freeze
-  PATH        = File.join( PATH_ROOT, PLUGIN_ID ).freeze
-  PATH_UI     = File.join( PATH, 'UI' ).freeze
-  
-  
+
+
   ### VARIABLES ### ------------------------------------------------------------
-  
+
   @wnd_drop_pad = nil
   @installed_stack = []
-  
-  
+
+
   ### MENU & TOOLBARS ### ------------------------------------------------------
-  
+
   unless file_loaded?( __FILE__ )
     # Commands
     cmd = UI::Command.new( 'Drop Zone' ) { self.toggle_dropzone_window }
@@ -68,25 +52,11 @@ module TT::Plugins::DropZone
     # Menus
     m = TT.menu( 'Window' )
     m.add_item( cmd_toggle_dropzone_window )
-  end 
-  
-  
-  ### LIB FREDO UPDATER ### ----------------------------------------------------
-  
-  def self.register_plugin_for_LibFredo6
-    {   
-      :name => PLUGIN_NAME,
-      :author => 'thomthom',
-      :version => PLUGIN_VERSION.to_s,
-      :date => RELEASE_DATE,   
-      :description => 'Drag and Drop Ruby packages to install.',
-      :link_info => 'http://sketchucation.com/forums/viewtopic.php?t=51330'
-    }
   end
-  
-  
+
+
   ### MAIN SCRIPT ### ----------------------------------------------------------
-  
+
   # @return [Boolean]
   # @since 1.0.0
   def self.toggle_dropzone_window
@@ -110,7 +80,7 @@ module TT::Plugins::DropZone
       MF_UNCHECKED
     end
   end
-  
+
 
   # @return [String]
   # @since 1.0.0
@@ -148,7 +118,7 @@ module TT::Plugins::DropZone
       @installed_stack.clear
       puts "> Cleared!"
     }
-    
+
     window
   end
 
@@ -308,7 +278,7 @@ module TT::Plugins::DropZone
     # Install files.
     case filetype.downcase
     when 'rb', 'rbs'
-      # Should not try to load file until it's been verified to not be in 
+      # Should not try to load file until it's been verified to not be in
       # VirtualStore. Files are loaded after all files has been copied and
       # the VirtualStore has been checked and processed.
       if self.is_virtual?( filename )
@@ -355,9 +325,9 @@ module TT::Plugins::DropZone
     File.exist?( virtualfile )
   end
 
-  
+
   ### DEBUG ### ----------------------------------------------------------------
-  
+
   # @note Debug method to reload the plugin.
   #
   # @example
